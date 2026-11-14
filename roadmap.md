@@ -1,6 +1,5 @@
 # Roadmap — ECLIPSE: Reino de las Cenizas
 
-
 - [ ] Mejorar la apariencia de personajes y monstruos (pixel art más detallado)
 - [ ] Progresión: nivel máximo 500, +1 punto de atributo por nivel, XP por nivel del monstruo
 - [ ] Clases: 13 clases de combate, 5 evoluciones, 3 activas + 3 pasivas, +2 habilidades y evolución cada 100 niveles; elegir 1 de 3 clases iniciales
