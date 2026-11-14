@@ -267,7 +267,7 @@ function buildCrypt(): GameMap {
     arrivals: { city: { x: 7 * TILE, y: 5 * TILE + 12 } },
     exits: { S: "city" },
     enemies,
-    ambient: 0.88,
+    ambient: 0.84,
   };
 }
 
