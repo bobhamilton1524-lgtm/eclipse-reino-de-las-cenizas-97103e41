@@ -125,12 +125,7 @@ function tomb(c: Ctx, ox: number, oy: number, rng: Rng) {
 }
 
 function mausoleum(c: Ctx, ox: number, oy: number, rng: Rng, above: string | undefined) {
-  px(c, ox, oy, 16, 16, "#2a2730");
-  for (let r = 0; r < 3; r++)
-    for (let b = 0; b < 2; b++) {
-      const off = r % 2 ? 4 : 0;
-      px(c, ox + b * 8 + off - (off ? 4 : 0), oy + r * 5 + 1, 7, 4, rng() < 0.3 ? "#4d4955" : "#3e3a44");
-    }
+  bricks(c, ox, oy, rng, "#3e3a44", "#2a2730", "#4d4955");
   if (above !== "M" && above !== "C") {
     px(c, ox, oy, 16, 2, "#5d5866");
     px(c, ox, oy + 2, 16, 1, "#1d1b22");
