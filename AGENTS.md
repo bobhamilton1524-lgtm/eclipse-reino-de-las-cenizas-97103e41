@@ -28,3 +28,10 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- The game is a client-only canvas engine in `src/game/` (engine, maps, tiles, sprites, input, rules) driven by React UI in `src/components/game/`; why: keeps the game loop out of React renders and SSR.
+- Game tuning values (player, enemies, XP curve) live only in `src/game/rules.ts`; why: one place to adjust balance.
+- Maps are built deterministically from rectangles in `src/game/maps.ts` and pixel art is drawn procedurally in code (no sprite image files); why: easy to edit layouts and keep a consistent pixel style.
+- HUD, overlays and touch controls are DOM over the canvas and use design tokens from `src/styles.css`; canvas pixel colors live in the game modules.
