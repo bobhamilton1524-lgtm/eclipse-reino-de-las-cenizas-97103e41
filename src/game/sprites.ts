@@ -109,7 +109,7 @@ function draw(rows: string[], pal: Palette, flip = false, flash = false): HTMLCa
   const c = canvas.getContext("2d")!;
   rows.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
-      const col = pal[row[x]];
+      const col = pal[row[x] ?? "."];
       if (!col) continue;
       c.fillStyle = flash ? "#fff4e6" : col;
       c.fillRect(flip ? w - 1 - x : x, y, 1, 1);

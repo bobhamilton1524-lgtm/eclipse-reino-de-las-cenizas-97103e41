@@ -10,7 +10,7 @@ const px = (c: Ctx, x: number, y: number, w: number, h: number, col: string) => 
   c.fillStyle = col;
   c.fillRect(x, y, w, h);
 };
-const pick = <T,>(rng: Rng, arr: T[]) => arr[Math.floor(rng() * arr.length)];
+const pick = <T,>(rng: Rng, arr: T[]): T => arr[Math.floor(rng() * arr.length)]!;
 
 function speckle(c: Ctx, ox: number, oy: number, rng: Rng, colors: string[], count: number) {
   for (let i = 0; i < count; i++)
@@ -155,7 +155,14 @@ function lamp(c: Ctx, ox: number, oy: number, rng: Rng) {
   px(c, ox + 6, oy, 4, 1, "#141216");
 }
 
-function fountain(c: Ctx, ox: number, oy: number, rng: Rng, n: Record<string, string | undefined>) {
+interface Neighbors {
+  up: string | undefined;
+  down: string | undefined;
+  left: string | undefined;
+  right: string | undefined;
+}
+
+function fountain(c: Ctx, ox: number, oy: number, rng: Rng, n: Neighbors) {
   px(c, ox, oy, 16, 16, "#16303d");
   speckle(c, ox, oy, rng, ["#24506a", "#1d4052"], 10);
   const rim = "#56535e";
@@ -225,7 +232,7 @@ function coffin(c: Ctx, ox: number, oy: number, rng: Rng) {
 function stairs(c: Ctx, ox: number, oy: number) {
   const cols = ["#15131b", "#23202c", "#2f2c3a", "#3d394a"];
   for (let i = 0; i < 4; i++) {
-    px(c, ox, oy + i * 4, 16, 4, cols[i]);
+    px(c, ox, oy + i * 4, 16, 4, cols[i]!);
     px(c, ox, oy + i * 4, 16, 1, "#4c4858");
   }
 }
@@ -245,7 +252,7 @@ function bones(c: Ctx, ox: number, oy: number, rng: Rng) {
 
 function drawTile(c: Ctx, map: GameMap, x: number, y: number, rng: Rng) {
   const t = map.tiles;
-  const ch = t[y][x];
+  const ch = t[y]?.[x];
   const ox = x * TILE;
   const oy = y * TILE;
   const below = t[y + 1]?.[x];
@@ -286,15 +293,15 @@ function drawTile(c: Ctx, map: GameMap, x: number, y: number, rng: Rng) {
     case "M":
       return mausoleum(c, ox, oy, rng, above);
     case "C":
-      return cryptDoor(c, ox, oy, t[y][x - 1]);
+      return cryptDoor(c, ox, oy, t[y]?.[x - 1]);
     case "L":
       return lamp(c, ox, oy, rng);
     case "F":
       return fountain(c, ox, oy, rng, {
         up: above,
         down: below,
-        left: t[y][x - 1],
-        right: t[y][x + 1],
+        left: t[y]?.[x - 1],
+        right: t[y]?.[x + 1],
       });
     default:
       return ash(c, ox, oy, rng);
@@ -325,7 +332,7 @@ export function collectLights(map: GameMap): Light[] {
   const lights: Light[] = [];
   for (let y = 0; y < map.height; y++)
     for (let x = 0; x < map.width; x++) {
-      const ch = map.tiles[y][x];
+      const ch = map.tiles[y]?.[x];
       const cx = x * TILE + 8;
       const seed = x * 31 + y * 17;
       if (map.theme === "city") {

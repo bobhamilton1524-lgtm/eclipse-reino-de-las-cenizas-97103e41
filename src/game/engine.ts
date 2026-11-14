@@ -458,8 +458,8 @@ export class GameEngine {
     const list = this.enemies;
     for (let i = 0; i < list.length; i++)
       for (let j = i + 1; j < list.length; j++) {
-        const a = list[i];
-        const b = list[j];
+        const a = list[i]!;
+        const b = list[j]!;
         if (a.dead || b.dead) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
@@ -597,7 +597,7 @@ export class GameEngine {
 
   private blit(set: SpriteSet, face: 1 | -1, frame: number, flash: boolean, x: number, y: number) {
     const arr = flash ? (face > 0 ? set.flashRight : set.flashLeft) : face > 0 ? set.right : set.left;
-    this.ctx.drawImage(arr[frame % arr.length], Math.round(x - 8 - this.camX), Math.round(y - 16 - this.camY));
+    this.ctx.drawImage(arr[frame % arr.length]!, Math.round(x - 8 - this.camX), Math.round(y - 16 - this.camY));
   }
 
   private drawEnemy(e: Enemy) {
