@@ -51,13 +51,17 @@ type Grid = string[][];
 const fill = (w: number, h: number, ch: string): Grid =>
   Array.from({ length: h }, () => Array.from({ length: w }, () => ch));
 
-function rect(g: Grid, x: number, y: number, w: number, h: number, ch: string) {
-  for (let j = y; j < y + h; j++)
-    for (let i = x; i < x + w; i++) if (g[j] && g[j][i] !== undefined) g[j][i] = ch;
+function get(g: Grid, x: number, y: number): string | undefined {
+  return g[y]?.[x];
 }
 
 function set(g: Grid, x: number, y: number, ch: string) {
-  if (g[y] && g[y][x] !== undefined) g[y][x] = ch;
+  const row = g[y];
+  if (row && row[x] !== undefined) row[x] = ch;
+}
+
+function rect(g: Grid, x: number, y: number, w: number, h: number, ch: string) {
+  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) set(g, i, j, ch);
 }
 
 const px = (tx: number, ty: number) => ({ x: tx * TILE + TILE / 2, y: ty * TILE + 12 });
@@ -102,7 +106,7 @@ function buildCity(): GameMap {
   rect(g, 1, 22, W - 2, 2, ".");
   rect(g, 16, 18, 16, 10, ".");
   rect(g, 23, 21, 2, 2, "F");
-  for (const [lx, ly] of [
+  for (const [lx, ly] of <[number, number][]>[
     [16, 18],
     [31, 18],
     [16, 27],
@@ -117,7 +121,7 @@ function buildCity(): GameMap {
     set(g, lx, ly, "L");
 
   // Casas de Umbravía
-  for (const [hx, hy, hw, hh] of [
+  for (const [hx, hy, hw, hh] of <[number, number, number, number][]>[
     [3, 12, 7, 5],
     [11, 12, 6, 4],
     [30, 12, 7, 5],
@@ -135,12 +139,12 @@ function buildCity(): GameMap {
   for (let n = 0; n < 60; n++) {
     const tx = 1 + Math.floor(rng() * (W - 2));
     const ty = 1 + Math.floor(rng() * (H - 2));
-    if (g[ty][tx] !== ",") continue;
+    if (get(g, tx, ty) !== ",") continue;
     // dejar libre alrededor de caminos
-    const nearPath = [g[ty - 1]?.[tx], g[ty + 1]?.[tx], g[ty][tx - 1], g[ty][tx + 1]].some(
+    const nearPath = [get(g, tx, ty - 1), get(g, tx, ty + 1), get(g, tx - 1, ty), get(g, tx + 1, ty)].some(
       (c) => c === "." || c === "D" || c === "C",
     );
-    if (!nearPath) g[ty][tx] = "T";
+    if (!nearPath) set(g, tx, ty, "T");
   }
 
   return {
@@ -176,17 +180,17 @@ function buildCrypt(): GameMap {
   ];
   for (const r of rooms) rect(g, r.x, r.y, r.w, r.h, ".");
 
-  const center = (i: number) => ({
-    x: Math.floor(rooms[i].x + rooms[i].w / 2),
-    y: Math.floor(rooms[i].y + rooms[i].h / 2),
-  });
+  const center = (i: number) => {
+    const r = rooms[i]!;
+    return { x: Math.floor(r.x + r.w / 2), y: Math.floor(r.y + r.h / 2) };
+  };
   const corridor = (a: number, b: number) => {
     const p = center(a);
     const q = center(b);
     rect(g, Math.min(p.x, q.x), p.y, Math.abs(q.x - p.x) + 2, 2, ".");
     rect(g, q.x, Math.min(p.y, q.y), 2, Math.abs(q.y - p.y) + 2, ".");
   };
-  for (const [a, b] of [
+  for (const [a, b] of <[number, number][]>[
     [0, 1],
     [1, 2],
     [0, 3],
@@ -205,7 +209,7 @@ function buildCrypt(): GameMap {
   set(g, 7, 3, "S");
 
   // Ataúdes
-  for (const [cx, cy] of [
+  for (const [cx, cy] of <[number, number][]>[
     [21, 17],
     [21, 21],
     [28, 17],
@@ -220,13 +224,13 @@ function buildCrypt(): GameMap {
   // Antorchas en los muros que dan al suelo
   for (let y = 1; y < H - 1; y++)
     for (let x = 1; x < W - 1; x++)
-      if (g[y][x] === "#" && g[y + 1][x] === "." && (x * 7 + y * 3) % 6 === 0) g[y][x] = "t";
+      if (get(g, x, y) === "#" && get(g, x, y + 1) === "." && (x * 7 + y * 3) % 6 === 0) set(g, x, y, "t");
 
   // Huesos decorativos
   for (let n = 0; n < 40; n++) {
     const tx = Math.floor(rng() * W);
     const ty = Math.floor(rng() * H);
-    if (g[ty][tx] === ".") g[ty][tx] = "b";
+    if (get(g, tx, ty) === ".") set(g, tx, ty, "b");
   }
 
   const e = (kind: EnemyKind, tx: number, ty: number): EnemySpawn => ({ kind, ...px(tx, ty) });
