@@ -657,5 +657,5 @@ export function classTitle(cls: ClassDef, level: number) {
   return t === 0 ? cls.name : cls.evolutions[t - 1]!;
 }
 
-export const unlockedActives = (cls: ClassDef, level: number) => BASE_ACTIVES + evolutionTier(level);
-export const unlockedPassives = (cls: ClassDef, level: number) => BASE_PASSIVES + evolutionTier(level);
+export const unlockedActives = (level: number) => BASE_ACTIVES + evolutionTier(level);
+export const unlockedPassives = (level: number) => BASE_PASSIVES + evolutionTier(level);
