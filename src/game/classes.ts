@@ -1,0 +1,661 @@
+/**
+ * Las 13 clases de combate: 5 evoluciones cada una, 3 activas + 3 pasivas de base
+ * y 1 activa + 1 pasiva nueva en cada evolución (cada 100 niveles).
+ */
+import {
+  BASE_ACTIVES,
+  BASE_PASSIVES,
+  evolutionTier,
+  type ActiveKind,
+  type Attr,
+  type Attributes,
+  type PassiveKind,
+  type Style,
+} from "./rules";
+import type { Look } from "./sprites";
+
+export type ClassId =
+  | "guerrero"
+  | "arquero"
+  | "hechicero"
+  | "paladin"
+  | "asesino"
+  | "nigromante"
+  | "berserker"
+  | "lancero"
+  | "monje"
+  | "ballestero"
+  | "piromante"
+  | "runico"
+  | "segador";
+
+export interface SkillDef<K> {
+  name: string;
+  kind: K;
+  /** 0 = habilidad base, 1..5 = evolución que la desbloquea */
+  tier: number;
+}
+
+export interface Weapon {
+  len: number;
+  blade: string;
+  edge: string;
+  handle: string;
+  guard: string;
+}
+
+export interface ClassDef {
+  id: ClassId;
+  name: string;
+  style: Style;
+  primary: Attr;
+  /** Solo 3 clases se pueden elegir al empezar. */
+  starter: boolean;
+  description: string;
+  base: Attributes;
+  evolutions: [string, string, string, string, string];
+  actives: SkillDef<ActiveKind>[];
+  passives: SkillDef<PassiveKind>[];
+  look: Look;
+  /** Arma cuerpo a cuerpo dibujada por el motor (null = puños). */
+  weapon: Weapon | null;
+  /** Color de efectos y proyectiles. */
+  fx: string;
+}
+
+const at = (fuerza: number, destreza: number, inteligencia: number, vitalidad: number, agilidad: number): Attributes => ({
+  fuerza,
+  destreza,
+  inteligencia,
+  vitalidad,
+  agilidad,
+});
+const skills = <K,>(list: [string, K][]): SkillDef<K>[] =>
+  list.map(([name, kind], i) => ({ name, kind, tier: i < 3 ? 0 : i - 2 }));
+
+const SWORD: Weapon = { len: 12, blade: "#d8dce4", edge: "#9aa0ad", handle: "#6b4a2a", guard: "#c9a24a" };
+
+export const CLASSES: Record<ClassId, ClassDef> = {
+  guerrero: {
+    id: "guerrero",
+    name: "Guerrero",
+    style: "melee",
+    primary: "fuerza",
+    starter: true,
+    description: "Acero y voluntad. Resiste en primera línea y castiga con su espada.",
+    base: at(8, 4, 2, 7, 4),
+    evolutions: ["Caballero de Ceniza", "Señor de la Guerra", "Campeón del Eclipse", "Rey Ceniciento", "Avatar de Hierro"],
+    actives: skills<ActiveKind>([
+      ["Tajo Brutal", "tajo"],
+      ["Carga de Hierro", "embestida"],
+      ["Remolino de Acero", "torbellino"],
+      ["Grito de Guerra", "furia"],
+      ["Muralla Viva", "escudo"],
+      ["Hoja Ígnea", "tajo"],
+      ["Cataclismo", "torbellino"],
+      ["Juicio del Eclipse", "meteoro"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Piel de Hierro", "coraza"],
+      ["Fuerza Bruta", "poder"],
+      ["Aguante", "vida"],
+      ["Sed de Batalla", "vampirismo"],
+      ["Ritmo de Combate", "frenesi"],
+      ["Golpe Certero", "critico"],
+      ["Paso Firme", "celeridad"],
+      ["Voluntad Inquebrantable", "vida"],
+    ]),
+    look: {
+      skin: "#e0b08a",
+      eyes: "#2a1a14",
+      head: "helmet",
+      headColor: "#8a909e",
+      plume: "#a32222",
+      body: "#5b6272",
+      trim: "#c9a24a",
+      legs: "#3d3346",
+      boots: "#4a3020",
+      cape: "#7a1818",
+    },
+    weapon: SWORD,
+    fx: "#ffcf8a",
+  },
+  arquero: {
+    id: "arquero",
+    name: "Arquero",
+    style: "ranged",
+    primary: "destreza",
+    starter: true,
+    description: "Ojo certero y pies ligeros. Abate a sus presas antes de que lleguen.",
+    base: at(3, 9, 3, 5, 5),
+    evolutions: ["Explorador", "Tirador de Élite", "Cazador de Sombras", "Ojo del Eclipse", "Arco Eterno"],
+    actives: skills<ActiveKind>([
+      ["Flecha Perforante", "disparo"],
+      ["Lluvia de Flechas", "abanico"],
+      ["Salto Evasivo", "embestida"],
+      ["Ojo de Halcón", "furia"],
+      ["Flecha Explosiva", "meteoro"],
+      ["Tormenta de Plumas", "abanico"],
+      ["Disparo Fantasma", "disparo"],
+      ["Eclipse de Flechas", "nova"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Puntería", "critico"],
+      ["Pies Ligeros", "celeridad"],
+      ["Tensión del Arco", "poder"],
+      ["Tiro Rápido", "frenesi"],
+      ["Instinto", "coraza"],
+      ["Sangre de Cazador", "vampirismo"],
+      ["Resistencia", "vida"],
+      ["Mirada Letal", "critico"],
+    ]),
+    look: {
+      skin: "#d9a47c",
+      eyes: "#1e2a14",
+      head: "hood",
+      headColor: "#3f5a34",
+      body: "#4e6b3c",
+      trim: "#8a5a2e",
+      legs: "#3b2f25",
+      boots: "#5a3a22",
+      cape: "#2f4628",
+      held: "bow",
+      heldColor: "#9a6a36",
+    },
+    weapon: null,
+    fx: "#e8e0c0",
+  },
+  hechicero: {
+    id: "hechicero",
+    name: "Hechicero",
+    style: "magic",
+    primary: "inteligencia",
+    starter: true,
+    description: "Domina el arcano del eclipse. Frágil, pero su magia arrasa grupos enteros.",
+    base: at(2, 4, 9, 5, 5),
+    evolutions: ["Arcanista", "Archimago", "Señor de las Runas", "Profeta del Eclipse", "Mente Infinita"],
+    actives: skills<ActiveKind>([
+      ["Orbe Arcano", "disparo"],
+      ["Nova de Ceniza", "nova"],
+      ["Meteoro", "meteoro"],
+      ["Barrera Mística", "escudo"],
+      ["Aliento Vital", "curacion"],
+      ["Lanzas de Éter", "abanico"],
+      ["Tormenta Astral", "nova"],
+      ["Colapso Estelar", "meteoro"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Mente Aguda", "poder"],
+      ["Flujo Arcano", "frenesi"],
+      ["Velo Místico", "coraza"],
+      ["Foco Absoluto", "critico"],
+      ["Esencia Robada", "vampirismo"],
+      ["Cuerpo Astral", "vida"],
+      ["Paso Etéreo", "celeridad"],
+      ["Sabiduría Antigua", "poder"],
+    ]),
+    look: {
+      skin: "#e6bfa0",
+      eyes: "#1a1430",
+      head: "hat",
+      headColor: "#3a2a6a",
+      body: "#4b3587",
+      trim: "#d9b44a",
+      legs: "#2a1e46",
+      boots: "#2a1e2a",
+      held: "staff",
+      heldColor: "#6b4a2a",
+      orb: "#8fd3ff",
+    },
+    weapon: null,
+    fx: "#8fd3ff",
+  },
+  paladin: {
+    id: "paladin",
+    name: "Paladín",
+    style: "melee",
+    primary: "fuerza",
+    starter: false,
+    description: "Guerrero sagrado que protege, cura y juzga con su martillo.",
+    base: at(7, 3, 4, 8, 3),
+    evolutions: ["Cruzado", "Templario", "Guardián Solar", "Luz del Alba", "Santo del Eclipse"],
+    actives: skills<ActiveKind>([
+      ["Martillo Sagrado", "tajo"],
+      ["Luz Sanadora", "curacion"],
+      ["Égida", "escudo"],
+      ["Carga Divina", "embestida"],
+      ["Consagración", "nova"],
+      ["Fervor", "furia"],
+      ["Juicio Solar", "meteoro"],
+      ["Aura Celestial", "torbellino"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Fe", "vida"],
+      ["Armadura Bendita", "coraza"],
+      ["Justicia", "poder"],
+      ["Gracia", "vampirismo"],
+      ["Celo", "frenesi"],
+      ["Bendición", "critico"],
+      ["Peregrino", "celeridad"],
+      ["Mártir", "coraza"],
+    ]),
+    look: {
+      skin: "#e8bc98",
+      eyes: "#2a2a4a",
+      head: "helmet",
+      headColor: "#d8d2bc",
+      plume: "#e8c45a",
+      body: "#c9c3ae",
+      trim: "#d9a83a",
+      legs: "#5a5a6a",
+      boots: "#6b5a3a",
+      cape: "#2c4a8a",
+    },
+    weapon: { len: 10, blade: "#e8e2cc", edge: "#b8a878", handle: "#6b4a2a", guard: "#d9a83a" },
+    fx: "#ffe9a0",
+  },
+  asesino: {
+    id: "asesino",
+    name: "Asesino",
+    style: "melee",
+    primary: "destreza",
+    starter: false,
+    description: "Sombra veloz de dagas envenenadas y golpes críticos.",
+    base: at(4, 8, 2, 4, 7),
+    evolutions: ["Sombra", "Acechador", "Daga Nocturna", "Fantasma del Eclipse", "Muerte Silenciosa"],
+    actives: skills<ActiveKind>([
+      ["Puñalada", "tajo"],
+      ["Paso Sombrío", "embestida"],
+      ["Danza de Cuchillas", "torbellino"],
+      ["Dagas Arrojadizas", "abanico"],
+      ["Frenesí Sangriento", "furia"],
+      ["Velo de Humo", "escudo"],
+      ["Golpe Mortal", "tajo"],
+      ["Mil Cortes", "torbellino"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Sigilo", "celeridad"],
+      ["Punto Débil", "critico"],
+      ["Veneno", "poder"],
+      ["Reflejos", "frenesi"],
+      ["Sangría", "vampirismo"],
+      ["Evasión", "coraza"],
+      ["Instinto Asesino", "critico"],
+      ["Sombra Eterna", "vida"],
+    ]),
+    look: {
+      skin: "#d6a888",
+      eyes: "#ff4a4a",
+      head: "hood",
+      headColor: "#26222e",
+      body: "#2e2a36",
+      trim: "#8a1a2a",
+      legs: "#1e1a24",
+      boots: "#141018",
+    },
+    weapon: { len: 7, blade: "#c8ccd8", edge: "#7a2a3a", handle: "#2a2026", guard: "#5a5a66" },
+    fx: "#d04a6a",
+  },
+  nigromante: {
+    id: "nigromante",
+    name: "Nigromante",
+    style: "magic",
+    primary: "inteligencia",
+    starter: false,
+    description: "Señor de huesos y plagas que roba la vida de sus enemigos.",
+    base: at(2, 3, 9, 6, 5),
+    evolutions: ["Invocador de Huesos", "Señor de la Cripta", "Rey Liche", "Heraldo de la Muerte", "Señor del Vacío"],
+    actives: skills<ActiveKind>([
+      ["Rayo Necrótico", "disparo"],
+      ["Explosión de Cadáver", "nova"],
+      ["Drenar Vida", "curacion"],
+      ["Lanzas de Hueso", "abanico"],
+      ["Coraza Ósea", "escudo"],
+      ["Plaga", "nova"],
+      ["Pacto Oscuro", "furia"],
+      ["Apocalipsis", "meteoro"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Toque Mortal", "vampirismo"],
+      ["Energía Oscura", "poder"],
+      ["Cuerpo Marchito", "coraza"],
+      ["Hambre de Almas", "frenesi"],
+      ["Vida Robada", "vida"],
+      ["Maldición", "critico"],
+      ["Paso de Ultratumba", "celeridad"],
+      ["Inmortalidad", "vida"],
+    ]),
+    look: {
+      skin: "#c8c0b4",
+      eyes: "#7cff9a",
+      head: "hood",
+      headColor: "#1e1a22",
+      body: "#2a2430",
+      trim: "#6aa86a",
+      legs: "#1a161e",
+      boots: "#141018",
+      held: "staff",
+      heldColor: "#4a4048",
+      orb: "#7cff9a",
+    },
+    weapon: null,
+    fx: "#7cff9a",
+  },
+  berserker: {
+    id: "berserker",
+    name: "Berserker",
+    style: "melee",
+    primary: "fuerza",
+    starter: false,
+    description: "Furia desatada. Cuanto más sangra, más fuerte golpea su hacha.",
+    base: at(9, 3, 1, 7, 5),
+    evolutions: ["Bárbaro", "Destructor", "Furia Roja", "Titán", "Bestia del Eclipse"],
+    actives: skills<ActiveKind>([
+      ["Hachazo", "tajo"],
+      ["Rugido", "furia"],
+      ["Torbellino Salvaje", "torbellino"],
+      ["Embestida Brutal", "embestida"],
+      ["Terremoto", "nova"],
+      ["Sed de Sangre", "curacion"],
+      ["Rompecráneos", "tajo"],
+      ["Ira Primordial", "meteoro"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Rabia", "poder"],
+      ["Sangre Caliente", "vampirismo"],
+      ["Frenesí", "frenesi"],
+      ["Piel Gruesa", "coraza"],
+      ["Brutalidad", "critico"],
+      ["Corazón Salvaje", "vida"],
+      ["Estampida", "celeridad"],
+      ["Furia Eterna", "poder"],
+    ]),
+    look: {
+      skin: "#d89a74",
+      eyes: "#3a1410",
+      head: "horned",
+      headColor: "#5a5a62",
+      horn: "#e8dcc0",
+      body: "#6b4a32",
+      trim: "#3a2a1a",
+      legs: "#4a3a2a",
+      boots: "#3a2618",
+    },
+    weapon: { len: 11, blade: "#b8bcc8", edge: "#7a7e8a", handle: "#5a3a22", guard: "#3a2a1a" },
+    fx: "#ff6a4a",
+  },
+  lancero: {
+    id: "lancero",
+    name: "Lancero",
+    style: "melee",
+    primary: "fuerza",
+    starter: false,
+    description: "Mantiene a raya a sus enemigos con el largo alcance de su lanza.",
+    base: at(7, 5, 2, 6, 5),
+    evolutions: ["Dragón de Hierro", "Lanza Real", "Alabardero", "Lanza del Cielo", "Dragón del Eclipse"],
+    actives: skills<ActiveKind>([
+      ["Estocada", "tajo"],
+      ["Salto del Dragón", "embestida"],
+      ["Barrido", "torbellino"],
+      ["Lanza Arrojadiza", "disparo"],
+      ["Muro de Lanzas", "escudo"],
+      ["Furia Dracónica", "furia"],
+      ["Lluvia de Lanzas", "abanico"],
+      ["Caída Celestial", "meteoro"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Alcance", "poder"],
+      ["Guardia", "coraza"],
+      ["Zancada", "celeridad"],
+      ["Penetración", "critico"],
+      ["Ritmo", "frenesi"],
+      ["Vigor", "vida"],
+      ["Sangre de Dragón", "vampirismo"],
+      ["Maestría", "poder"],
+    ]),
+    look: {
+      skin: "#e0b08a",
+      eyes: "#1a2a3a",
+      head: "helmet",
+      headColor: "#7a8ea8",
+      plume: "#2a5aa8",
+      body: "#3a5a8a",
+      trim: "#c0c8d8",
+      legs: "#2a3242",
+      boots: "#3a2a1a",
+    },
+    weapon: { len: 16, blade: "#d8dce4", edge: "#9aa0ad", handle: "#7a5a32", guard: "#c0c8d8" },
+    fx: "#a8d0ff",
+  },
+  monje: {
+    id: "monje",
+    name: "Monje",
+    style: "melee",
+    primary: "agilidad",
+    starter: false,
+    description: "Puños de hierro y chi interior. Golpea rápido y se recupera solo.",
+    base: at(4, 5, 3, 5, 8),
+    evolutions: ["Discípulo", "Puño de Hierro", "Maestro del Chi", "Sabio Ascendido", "Iluminado"],
+    actives: skills<ActiveKind>([
+      ["Ráfaga de Puños", "tajo"],
+      ["Patada Voladora", "embestida"],
+      ["Ola de Chi", "nova"],
+      ["Meditación", "curacion"],
+      ["Cuerpo Diamante", "escudo"],
+      ["Tornado", "torbellino"],
+      ["Palma del Dragón", "disparo"],
+      ["Despertar", "furia"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Disciplina", "frenesi"],
+      ["Equilibrio", "coraza"],
+      ["Chi Interior", "vida"],
+      ["Puño Veloz", "celeridad"],
+      ["Punto de Presión", "critico"],
+      ["Armonía", "vampirismo"],
+      ["Fuerza Interior", "poder"],
+      ["Trascendencia", "vida"],
+    ]),
+    look: {
+      skin: "#d9a47c",
+      eyes: "#2a1a10",
+      head: "bald",
+      headColor: "#d9a47c",
+      body: "#c8742a",
+      trim: "#5a2a14",
+      legs: "#a85e22",
+      boots: "#5a3a22",
+    },
+    weapon: null,
+    fx: "#ffd27a",
+  },
+  ballestero: {
+    id: "ballestero",
+    name: "Ballestero",
+    style: "ranged",
+    primary: "destreza",
+    starter: false,
+    description: "Virotes pesados y trampas explosivas. Lento, pero demoledor a distancia.",
+    base: at(5, 8, 2, 6, 4),
+    evolutions: ["Virote Negro", "Mecanista", "Artillero", "Asedio Viviente", "Ballesta del Eclipse"],
+    actives: skills<ActiveKind>([
+      ["Virote Pesado", "disparo"],
+      ["Ráfaga de Virotes", "abanico"],
+      ["Trampa Explosiva", "meteoro"],
+      ["Retirada", "embestida"],
+      ["Blindaje", "escudo"],
+      ["Recarga Rápida", "furia"],
+      ["Virote Ígneo", "disparo"],
+      ["Bombardeo", "nova"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Mecanismo", "frenesi"],
+      ["Precisión", "critico"],
+      ["Coraza de Cuero", "coraza"],
+      ["Calibre", "poder"],
+      ["Botiquín", "vida"],
+      ["Movilidad", "celeridad"],
+      ["Saqueo", "vampirismo"],
+      ["Maestría Mecánica", "poder"],
+    ]),
+    look: {
+      skin: "#d9a47c",
+      eyes: "#1a1410",
+      head: "hair",
+      headColor: "#4a3a2a",
+      body: "#5a4a3a",
+      trim: "#9a7a3a",
+      legs: "#3a3228",
+      boots: "#4a3020",
+      cape: "#3a3228",
+      held: "crossbow",
+      heldColor: "#6b4a2a",
+    },
+    weapon: null,
+    fx: "#f0d8a0",
+  },
+  piromante: {
+    id: "piromante",
+    name: "Piromante",
+    style: "magic",
+    primary: "inteligencia",
+    starter: false,
+    description: "Hijo de las brasas. Todo lo que toca arde en llamas.",
+    base: at(2, 4, 9, 5, 5),
+    evolutions: ["Brasa Viva", "Señor de las Llamas", "Corazón de Magma", "Fénix", "Sol Negro"],
+    actives: skills<ActiveKind>([
+      ["Bola de Fuego", "disparo"],
+      ["Anillo de Llamas", "nova"],
+      ["Lluvia Ígnea", "meteoro"],
+      ["Chispas", "abanico"],
+      ["Escudo de Fuego", "escudo"],
+      ["Combustión", "furia"],
+      ["Renacer", "curacion"],
+      ["Supernova", "nova"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Calor Interno", "poder"],
+      ["Quemadura", "critico"],
+      ["Ceniza Protectora", "coraza"],
+      ["Avivar", "frenesi"],
+      ["Llama Vital", "vida"],
+      ["Consumir", "vampirismo"],
+      ["Viento Ardiente", "celeridad"],
+      ["Infierno", "poder"],
+    ]),
+    look: {
+      skin: "#e6bfa0",
+      eyes: "#ff9a2a",
+      head: "hood",
+      headColor: "#8a2a14",
+      body: "#a83a1a",
+      trim: "#f2b84a",
+      legs: "#5a1e10",
+      boots: "#2a1410",
+      held: "staff",
+      heldColor: "#3a2418",
+      orb: "#ffb04a",
+    },
+    weapon: null,
+    fx: "#ff9a3a",
+  },
+  runico: {
+    id: "runico",
+    name: "Caballero Rúnico",
+    style: "melee",
+    primary: "fuerza",
+    starter: false,
+    description: "Mezcla acero y runas de escarcha en cada golpe.",
+    base: at(7, 3, 5, 6, 4),
+    evolutions: ["Portador de Runas", "Rúnico de Escarcha", "Guardián Arcano", "Señor Rúnico", "Runa del Eclipse"],
+    actives: skills<ActiveKind>([
+      ["Espada Rúnica", "tajo"],
+      ["Runa de Escarcha", "nova"],
+      ["Escudo Rúnico", "escudo"],
+      ["Salto Arcano", "embestida"],
+      ["Runa Explosiva", "meteoro"],
+      ["Filo Encantado", "furia"],
+      ["Hoja Voladora", "disparo"],
+      ["Tormenta Rúnica", "torbellino"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Grabado", "poder"],
+      ["Armadura Rúnica", "coraza"],
+      ["Vínculo", "vida"],
+      ["Runa de Vida", "vampirismo"],
+      ["Runa Veloz", "celeridad"],
+      ["Runa Afilada", "critico"],
+      ["Runa de Furia", "frenesi"],
+      ["Runa Ancestral", "vida"],
+    ]),
+    look: {
+      skin: "#e0b08a",
+      eyes: "#6ad0ff",
+      head: "helmet",
+      headColor: "#4a5a6a",
+      body: "#3a4a5a",
+      trim: "#6ad0ff",
+      legs: "#2a3240",
+      boots: "#1e2430",
+      cape: "#1a2a3a",
+    },
+    weapon: { len: 12, blade: "#a8e0ff", edge: "#4a8ab8", handle: "#2a3240", guard: "#6ad0ff" },
+    fx: "#6ad0ff",
+  },
+  segador: {
+    id: "segador",
+    name: "Segador",
+    style: "melee",
+    primary: "fuerza",
+    starter: false,
+    description: "Siega almas con su guadaña y se alimenta de ellas.",
+    base: at(7, 5, 3, 5, 5),
+    evolutions: ["Cosechador", "Guadaña Negra", "Señor de Almas", "Ángel de Ceniza", "Segador del Eclipse"],
+    actives: skills<ActiveKind>([
+      ["Siega", "torbellino"],
+      ["Guadaña Lanzada", "disparo"],
+      ["Cosecha de Almas", "curacion"],
+      ["Paso de la Muerte", "embestida"],
+      ["Mortaja", "escudo"],
+      ["Hambre", "furia"],
+      ["Media Luna", "tajo"],
+      ["Fin de Todo", "nova"],
+    ]),
+    passives: skills<PassiveKind>([
+      ["Filo Maldito", "poder"],
+      ["Absorber Alma", "vampirismo"],
+      ["Sudario", "coraza"],
+      ["Presagio", "critico"],
+      ["Danza Macabra", "frenesi"],
+      ["Velo Negro", "vida"],
+      ["Andar Fantasmal", "celeridad"],
+      ["Eternidad", "poder"],
+    ]),
+    look: {
+      skin: "#c8c0b8",
+      eyes: "#d0e8ff",
+      head: "hood",
+      headColor: "#141218",
+      body: "#1e1a22",
+      trim: "#7a7a8a",
+      legs: "#141218",
+      boots: "#0e0c12",
+      cape: "#0e0c12",
+    },
+    weapon: { len: 15, blade: "#c8ccd8", edge: "#5a5e6a", handle: "#3a2a22", guard: "#7a7a8a" },
+    fx: "#b8c8ff",
+  },
+};
+
+export const CLASS_IDS = Object.keys(CLASSES) as ClassId[];
+export const STARTER_CLASSES = CLASS_IDS.filter((id) => CLASSES[id].starter);
+export const isClassId = (v: unknown): v is ClassId => typeof v === "string" && v in CLASSES;
+
+/** Nombre actual: el de la clase base o el de su última evolución. */
+export function classTitle(cls: ClassDef, level: number) {
+  const t = evolutionTier(level);
+  return t === 0 ? cls.name : cls.evolutions[t - 1]!;
+}
+
+export const unlockedActives = (level: number) => BASE_ACTIVES + evolutionTier(level);
+export const unlockedPassives = (level: number) => BASE_PASSIVES + evolutionTier(level);
