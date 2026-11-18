@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GameEngine, type HudState } from "@/game/engine";
 import { Input } from "@/game/input";
+import { loadSave, newSave } from "@/game/save";
 import titleArt from "@/assets/eclipse-title.jpg";
 import { Hud, LocationBanner } from "./Hud";
 import { TouchControls } from "./TouchControls";
@@ -25,6 +26,7 @@ export function GameScreen() {
       onHud: setHud,
       onMapChange: (name) => setBanner({ name, key: Date.now() }),
       onDeath: () => setPhase("dead"),
+      onNotice: (text) => setBanner({ name: text, key: Date.now() }),
     });
     engineRef.current = engine;
     setIsTouch(window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window);
@@ -35,7 +37,7 @@ export function GameScreen() {
   }, [input]);
 
   const start = useCallback(() => {
-    engineRef.current?.start();
+    engineRef.current?.start(loadSave() ?? newSave("guerrero"));
     setPhase("playing");
   }, []);
 
