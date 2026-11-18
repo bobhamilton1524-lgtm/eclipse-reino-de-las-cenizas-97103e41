@@ -1,4 +1,6 @@
 /** Entrada unificada: teclado (PC) y controles táctiles (Android). */
+import { BAR_SLOTS } from "./rules";
+
 const MOVE_KEYS: Record<string, [number, number]> = {
   KeyW: [0, -1],
   ArrowUp: [0, -1],
@@ -10,11 +12,14 @@ const MOVE_KEYS: Record<string, [number, number]> = {
   ArrowRight: [1, 0],
 };
 const ATTACK_KEYS = new Set(["Space", "KeyJ", "KeyK"]);
+/** Teclas 1-4 para las habilidades de la barra. */
+const SKILL_KEYS: Record<string, number> = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Numpad1: 0, Numpad2: 1, Numpad3: 2, Numpad4: 3 };
 
 export class Input {
   private keys = new Set<string>();
   private attackQueued = false;
   private keyAttackHeld = false;
+  private skillQueue: number[] = [];
   /** Vector del joystick táctil, cada eje en [-1, 1]. */
   joy = { x: 0, y: 0 };
   touchAttackHeld = false;
@@ -25,6 +30,8 @@ export class Input {
       if (!e.repeat) this.attackQueued = true;
       this.keyAttackHeld = true;
     }
+    const s = SKILL_KEYS[e.code];
+    if (s !== undefined && !e.repeat) this.queueSkill(s);
     this.keys.add(e.code);
   };
   private onKeyUp = (e: KeyboardEvent) => {
@@ -48,11 +55,19 @@ export class Input {
     this.keyAttackHeld = false;
     this.touchAttackHeld = false;
     this.attackQueued = false;
+    this.skillQueue = [];
     this.joy = { x: 0, y: 0 };
   }
 
   queueAttack() {
     this.attackQueued = true;
+  }
+  queueSkill(slot: number) {
+    if (slot >= 0 && slot < BAR_SLOTS && this.skillQueue.length < 3) this.skillQueue.push(slot);
+  }
+  /** Siguiente espacio de habilidad pulsado, o null. */
+  takeSkill(): number | null {
+    return this.skillQueue.shift() ?? null;
   }
 
   /** Dirección de movimiento normalizada (longitud <= 1). */
